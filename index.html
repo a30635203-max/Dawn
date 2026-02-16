@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مراحل اليوم الدقيقة - نجوم ناعمة بعيدة</title>
+    <!-- Manifest للتطبيق (Offline) -->
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%D9%85%D8%B1%D8%A7%D8%AD%D9%84%20%D8%A7%D9%84%D9%81%D8%AC%D8%B1%20%D9%88%D8%A7%D9%84%D8%B4%D8%B1%D9%88%D9%82%22%2C%22short_name%22%3A%22%D8%A7%D9%84%D9%85%D8%B1%D8%A7%D8%AD%D9%84%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22theme_color%22%3A%22%230a101c%22%2C%22background_color%22%3A%22%230a101c%22%7D">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Amiri', 'Tahoma', system-ui, sans-serif;
+        }
+        
+        /* تثبيت الصفحة بالكامل ومنع أي حركة */
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a101c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            height: 98%;
+            max-height: 98vh;
+            background: #0f1c2ef2;
+            backdrop-filter: blur(8px);
+            border-radius: min(3rem, 6vw) min(3rem, 6vw) min(2rem, 4vw) min(2rem, 4vw);
+            box-shadow: 0 25px 50px #000000b0, 0 0 0 2px #4f72a0 inset, 0 0 30px #6b9bd4b0;
+            overflow: hidden;
+            border: 2px solid #dbb87c;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sky-panel {
+            position: relative;
+            width: 100%;
+            flex: 0 0 auto;
+            height: min(400px, 35vh);
+            min-height: 250px;
+            background: #0a1425;
+            overflow: hidden;
+            border-bottom: 4px solid #d4a259;
+            box-shadow: 0 -10px 40px #000000 inset;
+        }
+
+        .horizon-line {
+            position: absolute;
+            bottom: 25%;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #e9cfa0, #fef7d4, #e9cfa0, transparent);
+            box-shadow: 0 0 30px #fddea8;
+            z-index: 30;
+            border-radius: 2px;
+        }
+
+        .horizon-label {
+            position: absolute;
+            bottom: calc(25% - 30px);
+            right: max(10px, 2%);
+            background: #1f2b3ad9;
+            color: #fee2b5;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: clamp(0.7rem, 2vw, 0.9rem);
+            border: 1px solid #baa06a;
+            backdrop-filter: blur(10px);
+            z-index: 40;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .sky-canvas, .stars-canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        .sky-canvas { z-index: 10; }
+        .stars-canvas { 
+            z-index: 20;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .celestial-body {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: clamp(50px, 8vw, 80px);
+            height: clamp(50px, 8vw, 80px);
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #fffde7, #ffc107);
+            box-shadow: 0 0 100px #ffb347;
+            z-index: 25;
+            transition: all 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        .phase-tag {
+            position: absolute;
+            bottom: 10px;
+            left: max(10px, 2%);
+            background: #0d1b2ee0;
+            color: #fad38f;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+            border: 1px solid #b38b51;
+            backdrop-filter: blur(10px);
+            z-index: 45;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .angle-badge {
+            position: absolute;
+            top: 10px;
+            left: max(10px, 2%);
+            background: #2a3f5ce0;
+            color: #c6ffb0;
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: clamp(0.8rem, 2.2vw, 1rem);
+            border: 1px solid #a5d174;
+            z-index: 46;
+            backdrop-filter: blur(5px);
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .slider-container {
+            flex: 0 0 auto;
+            padding: clamp(1rem, 3vh, 2rem) clamp(1rem, 4vw, 2.5rem);
+            background: #102132;
+            border-bottom: 1px solid #5f7da5;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            color: #ecdbaa;
+            margin-bottom: 10px;
+            font-size: clamp(0.8rem, 2vw, 1.1rem);
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            height: 8px;
+            background: linear-gradient(90deg, #1d3048, #456a97, #c9b078, #9e7a55, #1f2d3f);
+            border-radius: 20px;
+            -webkit-appearance: none;
+            appearance: none;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: clamp(24px, 5vw, 28px);
+            height: clamp(24px, 5vw, 28px);
+            background: #faecc6;
+            border-radius: 50%;
+            border: 3px solid #d8a547;
+            box-shadow: 0 0 20px #ffd58c;
+            cursor: pointer;
+        }
+
+        .slider-marks {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 5px 0;
+            color: #aac1e2;
+            font-size: clamp(0.6rem, 1.8vw, 0.8rem);
+            font-weight: 500;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .info-section {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .info-card {
+            flex: 2;
+            min-width: 280px;
+            height: 100%;
+            overflow-y: auto;
+            padding: clamp(1rem, 3vh, 2rem) clamp(1rem, 3vw, 2.2rem);
+            background: #101f30f5;
+        }
+
+        .stage-title {
+            font-size: clamp(1.5rem, 4vw, 2.2rem);
+            color: #ffdfa7;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .stage-sub {
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+            color: #c0d6fc;
+            margin: 5px 0 15px 0;
+            border-right: 4px solid #e0b156;
+            padding-right: 12px;
+            word-break: break-word;
+        }
+
+        .stage-desc {
+            background: #1e3147;
+            padding: clamp(1rem, 2.5vh, 1.8rem);
+            border-radius: min(2rem, 5vw);
+            border: 1px solid #7b98c0;
+            line-height: 1.7;
+            color: #eaf1ff;
+            font-size: clamp(0.9rem, 2.2vw, 1.1rem);
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        .scientific-note {
+            background: #2a405b;
+            padding: 6px 15px;
+            border-radius: 30px;
+            display: inline-block;
+            margin: 8px 0;
+            color: #ebffb0;
+            font-size: clamp(0.85rem, 2vw, 1rem);
+            border: 1px solid #b3d96b;
+        }
+
+        .quran-ref {
+            background: #33553f;
+            padding: 10px 15px;
+            border-radius: 20px;
+            border-right: 6px solid #ecd67a;
+            margin-top: 12px;
+            color: #fff0bf;
+            font-size: clamp(0.95rem, 2.2vw, 1.1rem);
+            font-style: italic;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .tafsir {
+            background: #2d445f;
+            padding: 8px 15px;
+            border-radius: 15px;
+            border-right: 4px solid #a7c4ff;
+            margin-top: 10px;
+            color: #deedff;
+            font-size: clamp(0.85rem, 2vw, 1rem);
+            word-break: break-word;
+        }
+
+        .phase-list-col {
+            flex: 1;
+            min-width: 240px;
+            height: 100%;
+            overflow-y: auto;
+            background: #0f1d2ee0;
+            border-right: 1px solid #6182ac;
+            padding: clamp(1rem, 3vh, 2rem) clamp(0.8rem, 2vw, 1.5rem);
+        }
+
+        .phase-list-col h3 {
+            color: #ecd396;
+            font-size: clamp(1.1rem, 3vw, 1.5rem);
+            border-bottom: 2px solid;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            word-break: break-word;
+        }
+
+        .phase-list {
+            list-style: none;
+            overflow-y: auto;
+            max-height: calc(100% - 50px);
+        }
+
+        .phase-list li {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: #203853;
+            border-radius: 30px;
+            border: 1px solid #5f82ac;
+            color: #e3edff;
+            cursor: pointer;
+            font-size: clamp(0.8rem, 2.2vw, 0.95rem);
+            word-break: break-word;
+            transition: 0.1s;
+        }
+
+        .phase-list li:hover {
+            background: #376694;
+            border-color: #efc880;
+        }
+
+        .phase-list li.active-phase {
+            background: #c8a155;
+            color: #0f1a28;
+            border-color: #ffe29b;
+            font-weight: 700;
+        }
+
+        footer {
+            flex: 0 0 auto;
+            background: #0f1d2e;
+            color: #9fb9df;
+            padding: 10px;
+            text-align: center;
+            border-top: 1px solid #4d74a2;
+            font-size: clamp(0.7rem, 1.8vw, 0.9rem);
+        }
+
+        /* تحسينات للشاشات الصغيرة جداً */
+        @media (max-width: 380px) {
+            .phase-tag, .angle-badge {
+                padding: 4px 8px;
+            }
+            .slider-marks span {
+                font-size: 0.55rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="sky-panel" id="skyPanel">
+        <div class="horizon-line"></div>
+        <div class="horizon-label">📍 الأفق</div>
+        <canvas id="skyCanvas" class="sky-canvas" width="1400" height="400"></canvas>
+        <canvas id="starsCanvas" class="stars-canvas" width="1400" height="400"></canvas>
+        <div id="sunDisk" class="celestial-body"></div>
+        <div class="phase-tag" id="currentPhaseName">الليل الفلكي</div>
+        <div class="angle-badge" id="currentAngleLabel">زاوية: −22°</div>
+    </div>
+
+    <div class="slider-container">
+        <div class="slider-label">
+            <span>🌙 الليل</span><span>🌅 الفجر</span><span>☀️ الشروق</span><span>🌇 الغروب</span><span>🌌 الشفق</span>
+        </div>
+        <input type="range" id="timeSlider" min="0" max="100" value="0" step="0.5">
+        <div class="slider-marks">
+            <span>الليل</span><span>فجر كاذب</span><span>فجر صادق</span><span>شروق</span><span>ضحى</span><span>غروب</span><span>شفق</span><span>الليل</span>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-card" id="infoCard">
+            <div class="stage-title" id="stageTitle">الليل الفلكي</div>
+            <div class="stage-sub" id="stageSub">Astronomical Night</div>
+            <div class="stage-desc" id="stageDesc"></div>
+        </div>
+        <div class="phase-list-col">
+            <h3>🗂️ جميع المراحل</h3>
+            <ul class="phase-list" id="phaseList"></ul>
+        </div>
+    </div>
+    <footer>ثابت تماماً · نجوم ناعمة بعيدة · متوافق مع 320px · آيات في مكانها</footer>
+</div>
+
+<script>
+    // Service Worker للتخزين المحلي (Offline)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js').catch(() => {
+                if ('caches' in window) {
+                    caches.open('phase-cache-v1').then(cache => {
+                        cache.addAll(['./', './index.html']);
+                    });
+                }
+            });
+        });
+    }
+
+    // بيانات المراحل - الآيات الآن في مكانها الصحيح داخل وصف المرحلة
+    (function() {
+        const allStages = [
+            // الليل العميق
+            { id: 'night1', name: 'الليل الفلكي', angleRange: 'أقل من −18°', angleVal: -22, sub: 'Astronomical Night', 
+              desc: 'الظلام التام عندما تكون الشمس تحت الأفق بأكثر من 18°. تظهر النجوم بوضوح شديد.', 
+              scientific: 'زاوية الشمس: −22° تحت الأفق',
+              quran: '﴿ وَاللَّيْلِ إِذَا يَغْشَىٰ ﴾ [الليل:1]',
+              tafsir: 'تفسير القمي: يعني حين يغطي الليل النهار.',
+              gradient: ['#010314','#0b1223','#172337'], star: 1.0, sunColor: 'transparent', sunY: 20 },
+
+            // الشفق الفلكي
+            { id: 'astroTwilight', name: 'الشفق الفلكي الصباحي', angleRange: '−18° إلى −12°', angleVal: -15, sub: 'Astronomical Twilight', 
+              desc: 'ضوء خافت جداً، أول بوادر النهار. لا تزال النجوم واضحة.', 
+              scientific: 'زاوية الشمس: −15°',
+              quran: '﴿ وَالصُّبْحِ إِذَا أَسْفَرَ ﴾ [المدثر:34]',
+              tafsir: 'الإمام الصادق (ع): "أسفر الصبح إذا أضاء وتبين".',
+              gradient: ['#09172b','#1f314a','#3b5172'], star: 0.95, sunColor: '#e6d2a0', sunY: 35 },
+
+            // الشفق البحري
+            { id: 'nauticalTwilight', name: 'الشفق البحري الصباحي', angleRange: '−12° إلى −6°', angleVal: -9, sub: 'Nautical Twilight', 
+              desc: 'الأفق يبدأ بالظهور، يمكن تمييز البحر عن السماء. النجوم الكبيرة ما زالت مرئية.', 
+              scientific: 'زاوية الشمس: −9°',
+              quran: '﴿ وَالْفَجْرِ ﴾ [الفجر:1]',
+              tafsir: 'قال الإمام الباقر (ع): "الفجر هو الصبح، وهو الخيط الأبيض المعترض".',
+              gradient: ['#1f3150','#3e5f83','#6794bc'], star: 0.7, sunColor: '#fdebb3', sunY: 48 },
+
+            // الشفق المدني
+            { id: 'civilTwilight', name: 'الشفق المدني الصباحي', angleRange: '−6° إلى 0°', angleVal: -3, sub: 'Civil Twilight', 
+              desc: 'إضاءة واضحة نسبياً، أغلب النجوم تختفي.', 
+              scientific: 'زاوية الشمس: −3°',
+              quran: '﴿ حَتَّىٰ يَتَبَيَّنَ لَكُمُ الْخَيْطُ الْأَبْيَضُ مِنَ الْخَيْطِ الْأَسْوَدِ مِنَ الْفَجْرِ ﴾ [البقرة:187]',
+              tafsir: 'تفسير نور الثقلين: الخيط الأبيض هو الفجر الصادق، والأسود هو سواد الليل.',
+              gradient: ['#5982b0','#8eb9dd','#c5e2ff'], star: 0.2, sunColor: '#ffdc99', sunY: 60 },
+
+            // الفجر الكاذب
+            { id: 'falseDawn', name: 'الفجر الكاذب', angleRange: '−5° إلى −3° (عمودي)', angleVal: -4, sub: 'False Dawn', 
+              desc: 'ضوء عمودي كذنب السرحان. لا يُعتد به شرعاً.', 
+              scientific: 'ظاهرة غبار كوني',
+              quran: 'عن أمير المؤمنين (ع): "هو الفجر الكاذب كذنب السرحان"',
+              tafsir: 'في وسائل الشيعة: الفجر الكاذب لا يحرم الطعام.',
+              gradient: ['#446c8c','#6e9ac0','#aac9ed'], star: 0.1, sunColor: '#ffddb0', sunY: 55 },
+
+            // الفجر الصادق
+            { id: 'trueDawn', name: 'الفجر الصادق', angleRange: '−2° إلى +1° أفقي', angleVal: 0, sub: 'True Dawn', 
+              desc: 'ضوء أبيض أفقي ينتشر في الأفق الشرقي. بداية وقت صلاة الفجر.', 
+              scientific: 'الشمس تحت الأفق بـ 0.5°',
+              quran: '﴿ وَالْفَجْرِ * وَلَيَالٍ عَشْرٍ ﴾ [الفجر:1-2]',
+              tafsir: 'الإمام الصادق (ع): "الفجر هو الخيط الأبيض المعترض". (الكافي)',
+              gradient: ['#86b5da','#c9e1f7','#f6f9ff'], star: 0.01, sunColor: '#ffe5a3', sunY: 70 },
+
+            // الإسفار
+            { id: 'ishfar', name: 'الإسفار', angleRange: '+1° إلى +3°', angleVal: 2, sub: 'Ishfar', 
+              desc: 'ازدياد الضوء بعد الفجر، وضوح الرؤية.', 
+              scientific: 'زاوية الشمس: +2°',
+              quran: '﴿ وَالصُّبْحِ إِذَا تَنَفَّسَ ﴾ [التكوير:18]',
+              tafsir: 'العلامة الطباطبائي: التنفس ظهور الضوء.',
+              gradient: ['#add3f0','#ebf5fe','#ffffff'], star: 0, sunColor: '#ffdb8b', sunY: 85 },
+
+            // ما قبل الشروق
+            { id: 'preSunrise', name: 'ما قبل الشروق', angleRange: 'أقل من +6°', angleVal: 4, sub: 'Just before sunrise', 
+              desc: 'السماء مضيئة، قرص الشمس لم يظهر بعد.', 
+              scientific: 'الشمس 4° تحت الأفق',
+              quran: '﴿ وَالشَّمْسِ وَضُحَاهَا ﴾ [الشمس:1]',
+              tafsir: 'الضحى: ارتفاع الشمس.',
+              gradient: ['#f7cf96','#fdedc3','#ffffff'], star: 0, sunColor: '#fec267', sunY: 100 },
+
+            // بداية الشروق
+            { id: 'sunriseStart', name: 'بداية الشروق', angleRange: '0°', angleVal: 0.2, sub: 'Sunrise start', 
+              desc: 'الطرف العلوي لقرص الشمس يلامس الأفق.', 
+              scientific: 'زاوية الشمس +0.2°',
+              quran: '﴿ حَتَّىٰ مَطْلَعِ الْفَجْرِ ﴾ [القدر:5]',
+              tafsir: 'أي وقت طلوع الفجر.',
+              gradient: ['#fec77e','#ffeab5','#fffcf0'], star: 0, sunColor: '#fdb64b', sunY: 108 },
+
+            // الشروق الكامل
+            { id: 'fullSunrise', name: 'الشروق الكامل', angleRange: '+0.5° إلى +2°', angleVal: 1, sub: 'Full sunrise', 
+              desc: 'خروج قرص الشمس كاملاً، نهاية وقت الفجر.', 
+              scientific: 'الشمس 1° فوق الأفق',
+              quran: '﴿ وَالضُّحَىٰ ﴾ [الضحى:1]',
+              tafsir: 'أي النهار كله.',
+              gradient: ['#fed896','#fff2d4','#ffffff'], star: 0, sunColor: '#fcaa35', sunY: 115 },
+
+            // الضحى المبكر
+            { id: 'duhaEarly', name: 'الضحى المبكر', angleRange: '+5° إلى +10°', angleVal: 8, sub: 'Early Duha', 
+              desc: 'بعد الشروق بـ 15–20 دقيقة.', 
+              scientific: 'ارتفاع 8°',
+              quran: '﴿ وَالضُّحَىٰ ﴾',
+              tafsir: 'صلاة الضحى من النوافل.',
+              gradient: ['#ffe3ad','#fff9e6','#ffffff'], star: 0, sunColor: '#ffbb4a', sunY: 140 },
+
+            // الضحى
+            { id: 'duha', name: 'الضحى', angleRange: '+15° إلى +25°', angleVal: 20, sub: 'Duha', 
+              desc: 'ارتفاع الشمس وازدياد الحرارة.', 
+              scientific: 'ارتفاع 20°',
+              quran: '﴿ وَالضُّحَىٰ * وَاللَّيْلِ إِذَا سَجَىٰ ﴾ [الضحى:1-2]',
+              tafsir: 'أقسم الله بالضحى.',
+              gradient: ['#c3ddf5','#f5edc7','white'], star: 0, sunColor: '#ffc561', sunY: 190 },
+
+            // الاصفرار
+            { id: 'yellowing', name: 'الاصفرار', angleRange: '+5° إلى +3°', angleVal: 4, sub: 'Yellowing', 
+              desc: 'لون الشمس يميل للاصفرار.', 
+              scientific: 'الشمس 4° فوق الأفق',
+              quran: '﴿ وَالشَّفَقِ ﴾',
+              tafsir: 'الشفق: الحمرة.',
+              gradient: ['#e3b185','#f5cf9c','#fee6b6'], star: 0, sunColor: '#f5b342', sunY: 150 },
+
+            // الاحمرار
+            { id: 'reddening', name: 'الاحمرار', angleRange: '+3° إلى +1°', angleVal: 2, sub: 'Reddening', 
+              desc: 'السماء تميل للأحمر.', 
+              scientific: 'الشمس 2°',
+              quran: '﴿ فَلَا أُقْسِمُ بِالشَّفَقِ ﴾',
+              tafsir: 'الشفق هو الحمرة.',
+              gradient: ['#c7603a','#dd8f55','#f0b97c'], star: 0, sunColor: '#d9670e', sunY: 125 },
+
+            // بداية الغروب
+            { id: 'sunsetStart', name: 'بداية الغروب', angleRange: '0°', angleVal: 0.2, sub: 'Sunset start', 
+              desc: 'قرص الشمس يلامس الأفق.', 
+              scientific: 'زاوية 0.2°',
+              quran: '﴿ لِدُلُوكِ الشَّمْسِ ﴾',
+              tafsir: 'دلوك الشمس: ميلها للغروب.',
+              gradient: ['#b44f2e','#cf7847','#e2a269'], star: 0.03, sunColor: '#cb6015', sunY: 108 },
+
+            // الغروب الكامل
+            { id: 'fullSunset', name: 'الغروب الكامل', angleRange: '−0.5°', angleVal: -0.5, sub: 'Full sunset', 
+              desc: 'اختفاء قرص الشمس. بداية وقت المغرب.', 
+              scientific: 'الشمس −0.5°',
+              quran: '﴿ قَبْلَ غُرُوبِهَا ﴾',
+              tafsir: 'صلاة المغرب.',
+              gradient: ['#7b4237','#a15d44','#bd8257'], star: 0.15, sunColor: '#aa4713', sunY: 90 },
+
+            // الشفق الأحمر
+            { id: 'redTwilight', name: 'الشفق الأحمر', angleRange: '−4° إلى −6°', angleVal: -5, sub: 'Red twilight', 
+              desc: 'حمرة في الغرب، تبدأ النجوم بالظهور.', 
+              scientific: 'الشمس −5°',
+              quran: '﴿ فَلَا أُقْسِمُ بِالشَّفَقِ ﴾',
+              tafsir: 'عن أبي عبد الله (ع): "الشفق الحمرة".',
+              gradient: ['#572f39','#7a4d47','#9f6b56'], star: 0.45, sunColor: '#933f17', sunY: 70 },
+
+            // الشفق الأبيض
+            { id: 'whiteTwilight', name: 'الشفق الأبيض', angleRange: '−7° إلى −10°', angleVal: -9, sub: 'White twilight', 
+              desc: 'ضوء أبيض بعد الحمرة، السماء تغمق.', 
+              scientific: 'الشمس −9°',
+              quran: '﴿ الْخَيْطُ الْأَبْيَضُ ﴾',
+              tafsir: 'الشفق الأبيض.',
+              gradient: ['#303d5a','#4f6382','#7087aa'], star: 0.7, sunColor: '#b0a38e', sunY: 50 },
+
+            // الغسق
+            { id: 'ghasaq', name: 'الغسق', angleRange: '−11° إلى −15°', angleVal: -13, sub: 'Ghasaq', 
+              desc: 'اشتداد الظلمة، بداية الليل.', 
+              scientific: 'الشمس −13°',
+              quran: '﴿ إِلَىٰ غَسَقِ اللَّيْلِ ﴾',
+              tafsir: 'غسق الليل: ظلامه.',
+              gradient: ['#172236','#253b54','#2e4868'], star: 0.9, sunColor: 'transparent', sunY: 30 },
+
+            // الليل مرة أخرى
+            { id: 'night2', name: 'الليل الفلكي', angleRange: 'أقل من −18°', angleVal: -22, sub: 'Astronomical night', 
+              desc: 'ظلام تام، النجوم واضحة جداً.', 
+              scientific: 'الشمس تحت −18°',
+              quran: '﴿ وَاللَّيْلِ إِذَا سَجَىٰ ﴾',
+              tafsir: 'سجى: سكن.',
+              gradient: ['#010514','#0c1425','#182337'], star: 1.0, sunColor: 'transparent', sunY: 20 }
+        ];
+
+        const skyCanvas = document.getElementById('skyCanvas');
+        const starsCanvas = document.getElementById('starsCanvas');
+        const sunDisk = document.getElementById('sunDisk');
+        const phaseNameSpan = document.getElementById('currentPhaseName');
+        const angleSpan = document.getElementById('currentAngleLabel');
+        const stageTitle = document.getElementById('stageTitle');
+        const stageSub = document.getElementById('stageSub');
+        const stageDesc = document.getElementById('stageDesc');
+        const phaseListEl = document.getElementById('phaseList');
+        const timeSlider = document.getElementById('timeSlider');
+
+        let currentStageIndex = 0;
+        const starsCtx = starsCanvas.getContext('2d');
+
+        // نجوم ناعمة جداً، صغيرة، بعيدة، شبه خافتة
+        function drawStars(opacity) {
+            const w = starsCanvas.width;
+            const h = starsCanvas.height;
+            starsCtx.clearRect(0,0,w,h);
+            if (opacity <= 0.01) return;
+
+            // نجوم خلفية ناعمة جداً (تكاد لا ترى)
+            for (let i = 0; i < 600; i++) {
+                let x = Math.random() * w;
+                let y = Math.random() * h * 0.9;
+                let size = 0.3 + Math.random() * 0.7;
+                let faint = 0.3 + Math.random() * 0.5;
+                starsCtx.fillStyle = `rgba(255, 245, 220, ${opacity * faint * 0.6})`;
+                starsCtx.beginPath();
+                starsCtx.arc(x, y, size, 0, 2 * Math.PI);
+                starsCtx.fill();
+            }
+
+            // نجوم متوسطة البعد (أكثر وضوحاً ولكن لا تزال ناعمة)
+            for (let i = 0; i < 200; i++) {
+                let x = Math.random() * w;
+                let y = Math.random() * h * 0.85;
+                let size = 0.6 + Math.random() * 1.0;
+                starsCtx.fillStyle = `rgba(255, 255, 230, ${opacity * 0.7})`;
+                starsCtx.beginPath();
+                starsCtx.arc(x, y, size, 0, 2 * Math.PI);
+                starsCtx.fill();
+            }
+
+            // بعض النجوم الخافتة جداً في الأسفل
+            for (let i = 0; i < 150; i++) {
+                let x = Math.random() * w;
+                let y = 100 + Math.random() * 200;
+                let size = 0.2 + Math.random() * 0.5;
+                starsCtx.fillStyle = `rgba(230, 240, 255, ${opacity * 0.4})`;
+                starsCtx.beginPath();
+                starsCtx.arc(x, y, size, 0, 2 * Math.PI);
+                starsCtx.fill();
+            }
+        }
+
+        function drawSky(index) {
+            const stage = allStages[index];
+            if (!stage) return;
+
+            phaseNameSpan.innerText = stage.name;
+            angleSpan.innerText = `زاوية: ${stage.angleVal}°`;
+            stageTitle.innerText = stage.name;
+            stageSub.innerText = stage.sub;
+
+            let descHtml = `<p>${stage.desc}</p><div class="scientific-note">${stage.scientific}</div>`;
+            if (stage.quran) descHtml += `<div class="quran-ref">${stage.quran}</div>`;
+            if (stage.tafsir) descHtml += `<div class="tafsir">📘 تفسير: ${stage.tafsir}</div>`;
+            stageDesc.innerHTML = descHtml;
+
+            // رسم تدرج السماء
+            const ctx = skyCanvas.getContext('2d');
+            const w = skyCanvas.width, h = skyCanvas.height;
+            ctx.clearRect(0,0,w,h);
+            const grd = ctx.createLinearGradient(0,0,0,h);
+            grd.addColorStop(0, stage.gradient[0]);
+            grd.addColorStop(0.5, stage.gradient[1]);
+            grd.addColorStop(1, stage.gradient[2]);
+            ctx.fillStyle = grd;
+            ctx.fillRect(0,0,w,h);
+
+            // رسم النجوم
+            drawStars(stage.star);
+
+            // تحديث موقع الشمس
+            if (stage.sunColor === 'transparent') {
+                sunDisk.style.opacity = '0';
+                sunDisk.style.boxShadow = 'none';
+            } else {
+                sunDisk.style.opacity = '1';
+                sunDisk.style.background = `radial-gradient(circle at 40% 30%, #fffce6, ${stage.sunColor})`;
+                sunDisk.style.boxShadow = '0 0 100px #ffae42';
+                sunDisk.style.bottom = stage.sunY + 'px';
+            }
+
+            // تحديث القائمة النشطة
+            document.querySelectorAll('.phase-list li').forEach(li => {
+                const idx = li.dataset.index;
+                if (parseInt(idx) === index) li.classList.add('active-phase');
+                else li.classList.remove('active-phase');
+            });
+        }
+
+        // بناء القائمة
+        allStages.forEach((stage, idx) => {
+            const li = document.createElement('li');
+            li.textContent = `${stage.name} (${stage.angleRange})`;
+            li.dataset.index = idx;
+            li.addEventListener('click', () => {
+                currentStageIndex = idx;
+                timeSlider.value = (idx / (allStages.length-1)) * 100;
+                drawSky(idx);
+            });
+            phaseListEl.appendChild(li);
+        });
+
+        // ربط السلايدر
+        timeSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            const indexFloat = (val / 100) * (allStages.length - 1);
+            let index = Math.round(indexFloat);
+            if (index < 0) index = 0;
+            if (index >= allStages.length) index = allStages.length - 1;
+            if (index !== currentStageIndex) {
+                currentStageIndex = index;
+                drawSky(index);
+            }
+        });
+
+        // تهيئة العرض
+        drawSky(0);
+        timeSlider.value = 0;
+
+        // تخزين في الكاش للتشغيل بدون إنترنت
+        if ('caches' in window) {
+            caches.open('phase-cache-v1').then(cache => {
+                cache.addAll(['./', './index.html']).catch(() => {});
+            });
+        }
+    })();
+</script>
+</body>
+</html>
