@@ -1,5 +1,5 @@
-// service-worker.js - النسخة المحدثة v2
-const CACHE_NAME = 'phase-cache-v2';
+// service-worker.js - النسخة المحدثة v3
+const CACHE_NAME = 'phase-cache-v3';
 const urlsToCache = [
   './',
   './index.html'
