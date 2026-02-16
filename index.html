@@ -402,7 +402,7 @@ if ('serviceWorker' in navigator) {
             console.log('❌ فشل تسجيل Service Worker: ', err);
             // في حالة الفشل، استخدم الكاش مباشرة
             if ('caches' in window) {
-                caches.open('phase-cache-v2').then(cache => {
+                caches.open('phase-cache-v3').then(cache => {
                     cache.addAll(['./', './index.html']);
                 });
             }
@@ -415,7 +415,7 @@ if ('caches' in window) {
     caches.keys().then(function(cacheNames) {
         return Promise.all(
             cacheNames.map(function(cacheName) {
-                if (cacheName.startsWith('phase-cache-') && cacheName !== 'phase-cache-v2') {
+                if (cacheName.startsWith('phase-cache-') && cacheName !== 'phase-cache-v3') {
                     console.log('🗑️ جاري حذف الكاش القديم:', cacheName);
                     return caches.delete(cacheName);
                 }
